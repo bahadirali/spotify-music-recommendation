@@ -17,6 +17,14 @@ const spotifyApi = new SpotifyWebApi();
 export default class App extends React.Component {
   constructor() {
     super();
+    this.suggestions = ["acousticness", "danceability", "duration_ms",
+                      "energy", "instrumentalness", "key", "liveness",
+                      "loudness", "mode", "popularity", "speechiness",
+                      "tempo", "time_signature", "valence"]
+                      .map((feature) => {
+                        return {id: feature, text: feature};
+                      });
+
     const params = this.getHashParams();
     const token = params.access_token;
     if (token) {
@@ -24,78 +32,35 @@ export default class App extends React.Component {
     }
     this.state = {
       loggedIn: token ? true : false,
-      nowPlaying: { name: 'Not Checked', albumArt: '' },
-      genres: [],
-      tags: [],
-      temp: 15,
+      features: [],
     }
 
-    this.getSavedSongs = this.getSavedSongs.bind(this);
-    this.handleTagDelete = this.handleTagDelete.bind(this);
-    this.handleTagAddition = this.handleTagAddition.bind(this);
-    this.handleTagDrag = this.handleTagDrag.bind(this);
-    this.tempChange = this.tempChange.bind(this);
+    this.handleFeatureDelete = this.handleFeatureDelete.bind(this);
+    this.handleFeatureAddition = this.handleFeatureAddition.bind(this);
+    this.handleFeatureDrag = this.handleFeatureDrag.bind(this);
+    this.getRecommendations = this.getRecommendations.bind(this);
   }
 
-  handleTagDelete(i) {
-    const { tags } = this.state;
+  handleFeatureDelete(i) {
+    const { features } = this.state;
     this.setState({
-     tags: tags.filter((tag, index) => index !== i),
+     features: features.filter((feature, index) => index !== i),
     });
   }
 
-  handleTagAddition(tag) {
-      this.setState(state => ({ tags: [...state.tags, tag] }));
+  handleFeatureAddition(feature) {
+      this.setState(state => ({ features: [...state.features, feature] }));
   }
 
-  handleTagDrag(tag, currPos, newPos) {
-      const tags = [...this.state.tags];
-      const newTags = tags.slice();
+  handleFeatureDrag(feature, currPos, newPos) {
+      const features = [...this.state.features];
+      const newFeatures = features.slice();
 
-      newTags.splice(currPos, 1);
-      newTags.splice(newPos, 0, tag);
+      newFeatures.splice(currPos, 1);
+      newFeatures.splice(newPos, 0, feature);
 
       // re-render
-      this.setState({ tags: newTags });
-  }
-
-  componentDidMount() {
-    if(spotifyApi.getAccessToken()){
-      spotifyApi.getAvailableGenreSeeds()
-        .then((response) => {
-          this.setState({
-            genres: response.genres.map((genre) => {
-              return {id: genre, text: genre};
-            }),
-          });
-        }, (error) => {
-          console.log("error");
-          console.log(error);
-        });
-    }
-  }
-
-  getNowPlaying(){
-    spotifyApi.getMyCurrentPlaybackState()
-      .then((response) => {
-        this.setState({
-          nowPlaying: { 
-              name: response.item.name, 
-              albumArt: response.item.album.images[0].url
-            }
-        });
-      });
-  }
-
-  getSavedSongs(){
-    //console.log("here");
-    spotifyApi.getMySavedTracks()
-      .then((response) => {
-        response.items.forEach((track) => (console.log(track.track.name)));
-        /*this.setState({
-
-        });*/
-      });
+      this.setState({ features: newFeatures });
   }
 
   getHashParams() {
@@ -110,71 +75,52 @@ export default class App extends React.Component {
     return hashParams;
   }
 
-  tempChange(event){
-    this.setState({
-      temp: event.target.value,
-    });
+  getRecommendations(){
+    spotifyApi.getRecommendations({seed_genres: "classical"})
+      .then(
+        function(res){
+          console.log("res");
+          console.log(res);
+        },function(err){
+          console.log("err");
+          console.log(err);
+        }
+      );
   }
 
   render() {
-    let suggestions = ["acousticness", "danceability", "duration_ms",
-                      "energy", "instrumentalness", "key", "liveness",
-                      "loudness", "mode", "popularity", "speechiness",
-                      "tempo", "time_signature", "valence"].
-                      map((feature) => {
-                        return {id: feature, text: feature};
-                      });
     //console.log(suggestions);
-    let tags = this.state.tags;
-    let genres = [];
-    genres = this.state.genres.map((genre) => {
-      return <option value={genre} key={genre}>{genre}</option>
+    let features = this.state.features; 
+
+    let sliders = this.state.features.map((feature) => {
+      return (
+        <div>
+          <input type="range" min="1" max="100" className="slider" id={feature.id}>
+          </input>
+          {feature.text}
+        </div>
+        );
     });
 
     return (
       <div className="App">
         <a href='
   http://localhost:8888' > Login to Spotify </a>
-        <div>
-          <input 
-            type="range" min="1" max="100" value={this.state.temp} 
-            onChange={this.tempChange} class="slider" id="myRange">
-          </input>
-          {this.state.temp}
-        </div>
-        {
-          false && this.state.loggedIn && 
-          <div>
-            <select>
-              {genres}
-            </select>
-          </div>
-        }
-        {
-          this.state.loggedIn &&
-          <div>
-                <ReactTags tags={tags}
-                    suggestions={suggestions}
-                    handleDelete={this.handleTagDelete}
-                    handleAddition={this.handleTagAddition}
-                    handleDrag={this.handleTagDrag}
-                    delimiters={delimiters} />
-          </div>
-        }
-        {false && 
+        { this.state.loggedIn &&
           <div>
             <div>
-              Now Playing: { this.state.nowPlaying.name }
+                  {sliders}
+                  <ReactTags features={features}
+                      suggestions={this.suggestions}
+                      handleDelete={this.handleFeatureDelete}
+                      handleAddition={this.handleFeatureAddition}
+                      handleDrag={this.handleFeatureDrag}
+                      delimiters={delimiters} />
             </div>
             <div>
-              <img src={this.state.nowPlaying.albumArt} style={{ height: 150 }} alt=""/>
+              <button onClick={this.getRecommendations}>Get Recommendations</button>
             </div>
           </div>
-        }
-        { this.state.loggedIn && false &&
-          <button onClick={() => this.getNowPlaying()}>
-            Check Now Playing
-          </button>
         }
       </div>
     );
