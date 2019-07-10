@@ -1,0 +1,9 @@
+div, button {
+  margin: 10px;
+}
+
+.tag-wrapper {
+  border-style: solid;
+  border-width: 1px;
+  margin: 1px;
+}
