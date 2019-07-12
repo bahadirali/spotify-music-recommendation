@@ -120,20 +120,16 @@ export default class App extends React.Component {
     spotifyApi.getRecommendations(parameters)
       .then(
         function(res){
-          console.log("res");
           console.log(res);
         },function(err){
-          console.log("err");
           console.log(err);
         }
       );
   }
 
   handleFeatureValueChange(event, feature){
-    console.log(event.target.value, feature.id);
     let vof = this.state.valuesOfFeatures;
     vof[feature.id] = event.target.value;
-    console.log(this.state.valuesOfFeatures);
     this.setState({
       valuesOfFeatures: vof,
     });
@@ -143,7 +139,7 @@ export default class App extends React.Component {
     let feature_sliders = this.state.features.map((feature) => {
       return (
         <div key={feature.id}>
-          <input type="range" min="1" max="100" className="slider"
+          <input type="range" min="0" max="1" step="0.01" className="slider"
           value={this.state.valuesOfFeatures[feature.id]}
           onChange={(event) => this.handleFeatureValueChange(event, feature)} 
           id={feature.id}>
@@ -188,10 +184,9 @@ export default class App extends React.Component {
   }
 }
 
-const FEATURES = ["acousticness", "danceability", "duration_ms",
-"energy", "instrumentalness", "key", "liveness",
-"loudness", "mode", "popularity", "speechiness",
-"tempo", "time_signature", "valence"];
+const FEATURES = ["acousticness", "danceability",
+"energy", "instrumentalness", "liveness",
+"mode", "popularity", "speechiness", "valence"];
 
 const GENRES = [
   "acoustic",
