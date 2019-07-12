@@ -17,13 +17,13 @@ const spotifyApi = new SpotifyWebApi();
 export default class App extends React.Component {
   constructor() {
     super();
-    this.suggestions = ["acousticness", "danceability", "duration_ms",
-                      "energy", "instrumentalness", "key", "liveness",
-                      "loudness", "mode", "popularity", "speechiness",
-                      "tempo", "time_signature", "valence"]
-                      .map((feature) => {
-                        return {id: feature, text: feature};
-                      });
+    this.available_features = FEATURES.map((feature) => {
+                                return {id: feature, text: feature};
+                              });
+
+    this.available_genres = GENRES.map((genre) => {
+                              return {id: genre, text: genre};
+                            });;
 
     const params = this.getHashParams();
     const token = params.access_token;
@@ -33,11 +33,18 @@ export default class App extends React.Component {
     this.state = {
       loggedIn: token ? true : false,
       features: [],
+      valuesOfFeatures: {},
+      genres: [],
     }
 
     this.handleFeatureDelete = this.handleFeatureDelete.bind(this);
     this.handleFeatureAddition = this.handleFeatureAddition.bind(this);
     this.handleFeatureDrag = this.handleFeatureDrag.bind(this);
+
+    this.handleGenreDelete = this.handleGenreDelete.bind(this);
+    this.handleGenreAddition = this.handleGenreAddition.bind(this);
+    this.handleGenreDrag = this.handleFeatureDrag.bind(this);
+
     this.getRecommendations = this.getRecommendations.bind(this);
   }
 
@@ -49,7 +56,12 @@ export default class App extends React.Component {
   }
 
   handleFeatureAddition(feature) {
-      this.setState(state => ({ features: [...state.features, feature] }));
+    let vof = this.state.valuesOfFeatures;
+    vof[feature.text] = 0;
+      this.setState(state => ({ 
+        features: [...state.features, feature],
+        valuesOfFeatures: vof, 
+      }));
   }
 
   handleFeatureDrag(feature, currPos, newPos) {
@@ -61,6 +73,30 @@ export default class App extends React.Component {
 
       // re-render
       this.setState({ features: newFeatures });
+  }
+
+  handleGenreDelete(i) {
+    const { genres } = this.state;
+    this.setState({
+     genres: genres.filter((genre, index) => index !== i),
+    });
+  }
+
+  handleGenreAddition(genre) {
+      this.setState(state => ({ 
+        genres: [...state.genres, genre],
+      }));
+  }
+
+  handleGenreDrag(genre, currPos, newPos) {
+      const genres = [...this.state.genres];
+      const newGenres = genres.slice();
+
+      newGenres.splice(currPos, 1);
+      newGenres.splice(newPos, 0, genre);
+
+      // re-render
+      this.setState({ genres: newGenres });
   }
 
   getHashParams() {
@@ -76,7 +112,12 @@ export default class App extends React.Component {
   }
 
   getRecommendations(){
-    spotifyApi.getRecommendations({seed_genres: "classical"})
+    let parameters = {seed_genres: "classical"};
+    this.state.features.forEach((feature) => {
+      parameters[feature.id] = this.state.valuesOfFeatures[feature.id];
+    });
+    console.log(parameters);
+    spotifyApi.getRecommendations(parameters)
       .then(
         function(res){
           console.log("res");
@@ -88,14 +129,24 @@ export default class App extends React.Component {
       );
   }
 
-  render() {
-    //console.log(suggestions);
-    let features = this.state.features; 
+  handleFeatureValueChange(event, feature){
+    console.log(event.target.value, feature.id);
+    let vof = this.state.valuesOfFeatures;
+    vof[feature.id] = event.target.value;
+    console.log(this.state.valuesOfFeatures);
+    this.setState({
+      valuesOfFeatures: vof,
+    });
+  }
 
-    let sliders = this.state.features.map((feature) => {
+  render() { 
+    let feature_sliders = this.state.features.map((feature) => {
       return (
-        <div>
-          <input type="range" min="1" max="100" className="slider" id={feature.id}>
+        <div key={feature.id}>
+          <input type="range" min="1" max="100" className="slider"
+          value={this.state.valuesOfFeatures[feature.id]}
+          onChange={(event) => this.handleFeatureValueChange(event, feature)} 
+          id={feature.id}>
           </input>
           {feature.text}
         </div>
@@ -109,12 +160,22 @@ export default class App extends React.Component {
         { this.state.loggedIn &&
           <div>
             <div>
-                  {sliders}
-                  <ReactTags features={features}
-                      suggestions={this.suggestions}
+                  {feature_sliders}
+                  Features
+                  <ReactTags tags={this.state.features}
+                      suggestions={this.available_features}
                       handleDelete={this.handleFeatureDelete}
                       handleAddition={this.handleFeatureAddition}
                       handleDrag={this.handleFeatureDrag}
+                      delimiters={delimiters} />
+            </div>
+            <div>
+                  Genres
+                  <ReactTags tags={this.state.genres}
+                      suggestions={this.available_genres}
+                      handleDelete={this.handleGenreDelete}
+                      handleAddition={this.handleGenreAddition}
+                      handleDrag={this.handleGenreDrag}
                       delimiters={delimiters} />
             </div>
             <div>
@@ -127,3 +188,136 @@ export default class App extends React.Component {
   }
 }
 
+const FEATURES = ["acousticness", "danceability", "duration_ms",
+"energy", "instrumentalness", "key", "liveness",
+"loudness", "mode", "popularity", "speechiness",
+"tempo", "time_signature", "valence"];
+
+const GENRES = [
+  "acoustic",
+  "afrobeat",
+  "alt-rock",
+  "alternative",
+  "ambient",
+  "anime",
+  "black-metal",
+  "bluegrass",
+  "blues",
+  "bossanova",
+  "brazil",
+  "breakbeat",
+  "british",
+  "cantopop",
+  "chicago-house",
+  "children",
+  "chill",
+  "classical",
+  "club",
+  "comedy",
+  "country",
+  "dance",
+  "dancehall",
+  "death-metal",
+  "deep-house",
+  "detroit-techno",
+  "disco",
+  "disney",
+  "drum-and-bass",
+  "dub",
+  "dubstep",
+  "edm",
+  "electro",
+  "electronic",
+  "emo",
+  "folk",
+  "forro",
+  "french",
+  "funk",
+  "garage",
+  "german",
+  "gospel",
+  "goth",
+  "grindcore",
+  "groove",
+  "grunge",
+  "guitar",
+  "happy",
+  "hard-rock",
+  "hardcore",
+  "hardstyle",
+  "heavy-metal",
+  "hip-hop",
+  "holidays",
+  "honky-tonk",
+  "house",
+  "idm",
+  "indian",
+  "indie",
+  "indie-pop",
+  "industrial",
+  "iranian",
+  "j-dance",
+  "j-idol",
+  "j-pop",
+  "j-rock",
+  "jazz",
+  "k-pop",
+  "kids",
+  "latin",
+  "latino",
+  "malay",
+  "mandopop",
+  "metal",
+  "metal-misc",
+  "metalcore",
+  "minimal-techno",
+  "movies",
+  "mpb",
+  "new-age",
+  "new-release",
+  "opera",
+  "pagode",
+  "party",
+  "philippines-opm",
+  "piano",
+  "pop",
+  "pop-film",
+  "post-dubstep",
+  "power-pop",
+  "progressive-house",
+  "psych-rock",
+  "punk",
+  "punk-rock",
+  "r-n-b",
+  "rainy-day",
+  "reggae",
+  "reggaeton",
+  "road-trip",
+  "rock",
+  "rock-n-roll",
+  "rockabilly",
+  "romance",
+  "sad",
+  "salsa",
+  "samba",
+  "sertanejo",
+  "show-tunes",
+  "singer-songwriter",
+  "ska",
+  "sleep",
+  "songwriter",
+  "soul",
+  "soundtracks",
+  "spanish",
+  "study",
+  "summer",
+  "swedish",
+  "synth-pop",
+  "tango",
+  "techno",
+  "trance",
+  "trip-hop",
+  "turkish",
+  "work-out",
+  "world-music"
+];
