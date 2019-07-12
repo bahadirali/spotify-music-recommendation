@@ -35,6 +35,7 @@ export default class App extends React.Component {
       features: [],
       valuesOfFeatures: {},
       genres: [],
+      recommended_songs: [],
     }
 
     this.handleFeatureDelete = this.handleFeatureDelete.bind(this);
@@ -119,12 +120,20 @@ export default class App extends React.Component {
     console.log(parameters);
     spotifyApi.getRecommendations(parameters)
       .then(
-        function(res){
-          console.log(res);
-        },function(err){
+        (res) => {
+          let songs = res.tracks.map((track) => {
+            return {song : track.name, 
+                    artist : track.artists[0].name, 
+                    link : track.external_urls.spotify};
+          });
+          this.setState({
+            recommended_songs: songs,
+          });
+          console.log(songs);
+        })
+      .catch((err) => {
           console.log(err);
-        }
-      );
+        });
   }
 
   handleFeatureValueChange(event, feature){
@@ -148,6 +157,27 @@ export default class App extends React.Component {
         </div>
         );
     });
+
+    let rec_songs = this.state.recommended_songs.map((track, index) => {
+      return (
+        <tr key={index}>
+          <td>
+          <a href={track.link}>{track.song}</a>
+          </td>
+          <td>
+            {track.artist}
+          </td>
+        </tr>
+      );
+    });
+
+    rec_songs = (
+      <table>
+        <tbody>
+          {rec_songs}
+        </tbody>
+      </table>
+    );
 
     return (
       <div className="App">
@@ -176,6 +206,9 @@ export default class App extends React.Component {
             </div>
             <div>
               <button onClick={this.getRecommendations}>Get Recommendations</button>
+            </div>
+            <div>
+              {rec_songs}
             </div>
           </div>
         }
