@@ -36,6 +36,7 @@ export default class App extends React.Component {
       valuesOfFeatures: {},
       genres: [],
       recommended_songs: [],
+      genreSelectionWarning : false,
     }
 
     this.handleFeatureDelete = this.handleFeatureDelete.bind(this);
@@ -86,6 +87,7 @@ export default class App extends React.Component {
   handleGenreAddition(genre) {
       this.setState(state => ({ 
         genres: [...state.genres, genre],
+        genreSelectionWarning : false,
       }));
   }
 
@@ -113,11 +115,24 @@ export default class App extends React.Component {
   }
 
   getRecommendations(){
-    let parameters = {seed_genres: "classical"};
+    if(this.state.genres.length === 0)
+    {
+      this.setState({
+        genreSelectionWarning : true,
+      });
+      return;
+    }
+
+    let genres_str_array = this.state.genres.map((genre) =>{
+      return genre.id;
+    });
+
+    let parameters = {seed_genres: genres_str_array};
+
     this.state.features.forEach((feature) => {
       parameters[feature.id] = this.state.valuesOfFeatures[feature.id];
     });
-    console.log(parameters);
+    //console.log(parameters);
     spotifyApi.getRecommendations(parameters)
       .then(
         (res) => {
@@ -129,7 +144,7 @@ export default class App extends React.Component {
           this.setState({
             recommended_songs: songs,
           });
-          console.log(songs);
+          //console.log(songs);
         })
       .catch((err) => {
           console.log(err);
@@ -162,7 +177,9 @@ export default class App extends React.Component {
       return (
         <tr key={index}>
           <td>
-          <a href={track.link}>{track.song}</a>
+          <a href={track.link} target="_blank" rel="noopener noreferrer">
+            {track.song}
+          </a>
           </td>
           <td>
             {track.artist}
@@ -185,24 +202,29 @@ export default class App extends React.Component {
   http://localhost:8888' > Login to Spotify </a>
         { this.state.loggedIn &&
           <div>
-            <div>
-                  {feature_sliders}
+            <div className="div-features">
                   Features
                   <ReactTags tags={this.state.features}
                       suggestions={this.available_features}
                       handleDelete={this.handleFeatureDelete}
                       handleAddition={this.handleFeatureAddition}
                       handleDrag={this.handleFeatureDrag}
+                      minQueryLength={0}
                       delimiters={delimiters} />
+                  {feature_sliders}
             </div>
-            <div>
+            <div className="div-genres">
                   Genres
                   <ReactTags tags={this.state.genres}
                       suggestions={this.available_genres}
                       handleDelete={this.handleGenreDelete}
                       handleAddition={this.handleGenreAddition}
                       handleDrag={this.handleGenreDrag}
+                      minQueryLength={0}
                       delimiters={delimiters} />
+                  {this.state.genreSelectionWarning &&
+                    <span>You should select a seed genre!</span>
+                  }
             </div>
             <div>
               <button onClick={this.getRecommendations}>Get Recommendations</button>
